@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip Map - MapMates</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="home.html" class="nav-logo">🗺️ MapMates</a>
+            <div class="nav-menu">
+                <a href="home.html" class="nav-link">Trips</a>
+                <a href="map.html" class="nav-link active">Map</a>
+                <a href="chat.html" class="nav-link">Messages</a>
+                <a href="karma.html" class="nav-link">Karma</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <a href="logout.html" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="map-container-wrapper">
+        <div class="map-header">
+            <h1>Trip Locations</h1>
+            <p>Click on markers to view trip details</p>
+        </div>
+        <div id="map" class="map-display"></div>
+        <div id="mapInfo" class="map-info">
+            <p>📍 Add your Google Maps API key in js/map.js to enable the interactive map</p>
+            <p>In the meantime, here's a list of all trip locations:</p>
+            <div id="tripLocations" class="trip-locations-list"></div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/trips.js"></script>
+    <script src="js/map.js"></script>
+    <script>
+        checkAuth();
+        
+        // Display trip locations list
+        function displayTripLocationsList() {
+            const trips = getTrips();
+            const container = document.getElementById('tripLocations');
+            
+            if (trips.length === 0) {
+                container.innerHTML = '<p>No trips available</p>';
+                return;
+            }
+
+            const tripsWithLocation = trips.filter(t => t.latitude && t.longitude);
+            
+            if (tripsWithLocation.length === 0) {
+                container.innerHTML = '<p>No trips with coordinates yet. Create trips with latitude/longitude to see them on the map!</p>';
+                return;
+            }
+
+            container.innerHTML = tripsWithLocation.map(trip => `
+                <div class="location-item">
+                    <h4>${trip.title}</h4>
+                    <p>📍 ${trip.location}</p>
+                    <p>Coordinates: ${trip.latitude}, ${trip.longitude}</p>
+                    <p><small>Hosted by ${trip.hostName} on ${new Date(trip.date).toLocaleDateString()}</small></p>
+                </div>
+            `).join('');
+        }
+
+        displayTripLocationsList();
+
+        // Try to initialize map
+        if (typeof initMap === 'function') {
+            initMap();
+        }
+    </script>
+</body>
+</html>

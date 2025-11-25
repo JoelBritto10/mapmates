@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Trip - MapMates</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="home.html" class="nav-logo">🗺️ MapMates</a>
+            <div class="nav-menu">
+                <a href="home.html" class="nav-link">Trips</a>
+                <a href="map.html" class="nav-link">Map</a>
+                <a href="chat.html" class="nav-link">Messages</a>
+                <a href="karma.html" class="nav-link">Karma</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <a href="logout.html" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="page-header">
+            <h1>Edit trip</h1>
+        </div>
+
+        <div class="form-container">
+            <form id="editTripForm" class="trip-form">
+                <input type="hidden" id="tripId" name="tripId">
+                
+                <div class="form-group">
+                    <label for="title">Trip Title *</label>
+                    <input type="text" id="title" name="title" required placeholder="e.g., Weekend Hiking in Yosemite">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description *</label>
+                    <textarea id="description" name="description" required rows="5" placeholder="Tell travelers what to expect..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="location">Location *</label>
+                    <input type="text" id="location" name="location" required placeholder="e.g., Yosemite National Park, CA">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="date">Date & Time *</label>
+                        <input type="datetime-local" id="date" name="date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="latitude">Latitude</label>
+                        <input type="number" id="latitude" name="latitude" step="0.000001" placeholder="37.8651">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="longitude">Longitude</label>
+                        <input type="number" id="longitude" name="longitude" step="0.000001" placeholder="-119.5383">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="image">Image URL</label>
+                    <input type="url" id="image" name="image" placeholder="https://example.com/image.jpg">
+                    <small>Paste an image URL or leave blank for default</small>
+                </div>
+
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+                <div id="successMessage" class="success-message" style="display: none;"></div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-danger" onclick="deleteTrip()">Delete trip</button>
+                    <div>
+                        <a href="home.html" class="btn-secondary">Cancel</a>
+                        <button type="submit" class="btn-primary">Save changes</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/trips.js"></script>
+    <script>
+        checkAuth();
+
+        // Get trip ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const tripId = urlParams.get('id');
+
+        if (!tripId) {
+            window.location.href = 'home.html';
+        }
+
+        // Load trip data
+        function loadTripData() {
+            const trips = getTrips();
+            const trip = trips.find(t => t.id === tripId);
+            const currentUser = getCurrentUser();
+
+            if (!trip) {
+                alert('Trip not found');
+                window.location.href = 'home.html';
+                return;
+            }
+
+            // Check if user is the host
+            if (trip.hostId !== currentUser.id) {
+                alert('You can only edit your own trips');
+                window.location.href = 'home.html';
+                return;
+            }
+
+            // Populate form
+            document.getElementById('tripId').value = trip.id;
+            document.getElementById('title').value = trip.title;
+            document.getElementById('description').value = trip.description;
+            document.getElementById('location').value = trip.location;
+            document.getElementById('date').value = trip.date;
+            document.getElementById('latitude').value = trip.latitude || '';
+            document.getElementById('longitude').value = trip.longitude || '';
+            document.getElementById('image').value = trip.image || '';
+        }
+
+        loadTripData();
+
+        // Handle form submission
+        document.getElementById('editTripForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                id: tripId,
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                location: document.getElementById('location').value,
+                date: document.getElementById('date').value,
+                latitude: parseFloat(document.getElementById('latitude').value) || null,
+                longitude: parseFloat(document.getElementById('longitude').value) || null,
+                image: document.getElementById('image').value
+            };
+
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            const result = updateTrip(formData);
+            
+            if (result.success) {
+                successDiv.textContent = 'Trip updated successfully! Redirecting...';
+                successDiv.style.display = 'block';
+                setTimeout(() => {
+                    window.location.href = 'home.html';
+                }, 1500);
+            } else {
+                errorDiv.textContent = result.message;
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        function deleteTrip() {
+            if (confirm('Are you sure you want to delete this trip? This action cannot be undone.')) {
+                const result = deleteTripById(tripId);
+                if (result.success) {
+                    alert('Trip deleted successfully');
+                    window.location.href = 'home.html';
+                } else {
+                    alert(result.message);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

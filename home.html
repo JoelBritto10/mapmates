@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discover Trips - MapMates</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="home.html" class="nav-logo">🗺️ MapMates</a>
+            <div class="nav-menu">
+                <a href="home.html" class="nav-link active">Trips</a>
+                <a href="map.html" class="nav-link">Map</a>
+                <a href="chat.html" class="nav-link">Messages</a>
+                <a href="karma.html" class="nav-link">Karma</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <a href="logout.html" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="page-header">
+            <h1>Discover trips</h1>
+            <a href="create-trip.html" class="btn-primary">+ Create trip</a>
+        </div>
+
+        <div class="trips-container" id="tripsContainer">
+            <p class="loading-message">Loading trips...</p>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/trips.js"></script>
+    <script>
+        // Check authentication
+        checkAuth();
+
+        // Load and display trips
+        function displayTrips() {
+            const trips = getTrips();
+            const container = document.getElementById('tripsContainer');
+            const currentUser = getCurrentUser();
+
+            if (trips.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No trips yet</h3>
+                        <p>Be the first to create a trip!</p>
+                        <a href="create-trip.html" class="btn-primary">Create trip</a>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = trips.map(trip => {
+                const isHost = trip.hostId === currentUser.id;
+                const hasJoined = trip.participants && trip.participants.includes(currentUser.id);
+                
+                return `
+                    <div class="trip-card">
+                        <div class="trip-image" style="background-image: url('${trip.image || 'https://via.placeholder.com/400x250?text=Trip+Image'}')"></div>
+                        <div class="trip-content">
+                            <div class="trip-date">${formatDate(trip.date)}</div>
+                            <h3 class="trip-title">${trip.title}</h3>
+                            <p class="trip-description">${trip.description}</p>
+                            <div class="trip-location">📍 ${trip.location}</div>
+                            <div class="trip-host">
+                                <span>Hosted by <strong>${trip.hostName}</strong></span>
+                                ${trip.participants ? `<span class="trip-participants">${trip.participants.length} joined</span>` : ''}
+                            </div>
+                            <div class="trip-actions">
+                                ${isHost ? 
+                                    `<a href="edit-trip.html?id=${trip.id}" class="btn-secondary">Edit trip</a>` :
+                                    hasJoined ?
+                                    `<button class="btn-disabled" disabled>Already joined</button>` :
+                                    `<button class="btn-primary" onclick="joinTrip('${trip.id}')">Join trip</button>`
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+            return date.toLocaleDateString('en-US', options);
+        }
+
+        function joinTrip(tripId) {
+            const currentUser = getCurrentUser();
+            const trips = getTrips();
+            const trip = trips.find(t => t.id === tripId);
+            
+            if (trip) {
+                if (!trip.participants) {
+                    trip.participants = [];
+                }
+                
+                if (!trip.participants.includes(currentUser.id)) {
+                    trip.participants.push(currentUser.id);
+                    localStorage.setItem('trips', JSON.stringify(trips));
+                    
+                    // Award karma to host
+                    awardKarmaForJoin(trip.hostId);
+                    
+                    displayTrips();
+                    alert('Successfully joined the trip!');
+                }
+            }
+        }
+
+        function awardKarmaForJoin(hostId) {
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const host = users.find(u => u.id === hostId);
+            
+            if (host) {
+                if (!host.karma) host.karma = 0;
+                host.karma += 5;
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+        }
+
+        // Load trips on page load
+        displayTrips();
+    </script>
+</body>
+</html>
