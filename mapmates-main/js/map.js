@@ -21,8 +21,9 @@ let mapsLoaded = false;
 
 // Load Google Maps script dynamically with required libraries
 function loadGoogleMapsScript() {
-    if (GOOGLE_MAPS_API_KEY === 'YOUR_API_KEY') {
-        console.warn('Google Maps API key not configured. Please add your API key in js/map.js');
+    if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'YOUR_API_KEY' || GOOGLE_MAPS_API_KEY.includes('YOUR_API_KEY')) {
+        console.warn('⚠️ Google Maps API key not configured or invalid');
+        console.warn('Using fallback mode - geolocation and navigation will work with default location');
         showAPIKeyWarning();
         setTimeout(initSimpleMap, 500);
         return false;
@@ -43,8 +44,13 @@ function loadGoogleMapsScript() {
     script.async = true;
     script.defer = true;
     
+    console.log('📜 Creating Google Maps script tag');
+    console.log('Script URL:', script.src.substring(0, 50) + '...');
+    
     script.onload = function() {
         console.log('✅ Google Maps script loaded successfully');
+        console.log('window.google:', typeof window.google);
+        console.log('window.google.maps:', typeof window.google?.maps);
         mapsLoaded = true;
         setTimeout(initMap, 100);
     };
@@ -78,6 +84,7 @@ function loadGoogleMapsScript() {
 
 // Initialize Google Map
 function initMap() {
+    console.log('🗺️ initMap() called');
     const mapElement = document.getElementById('map');
     
     if (!mapElement) {
@@ -85,11 +92,9 @@ function initMap() {
         return;
     }
     
-    if (!window.google || !window.google.maps) {
-        console.error('❌ Google Maps not available');
-        initSimpleMap();
-        return;
-    }
+    console.log('✅ Map element found:', mapElement);
+    console.log('Google object available?', !!window.google);
+    console.log('Google.maps available?', !!(window.google && window.google.maps));
     
     // Default center (San Francisco)
     const defaultCenter = { lat: 37.7749, lng: -122.4194 };
@@ -154,8 +159,17 @@ function initMap() {
 
 // Get user's current location with real-time tracking
 function getUserLocation() {
+    // Check if running on file:// protocol
+    const isFileProtocol = window.location.protocol === 'file:';
+    if (isFileProtocol) {
+        console.warn('⚠️ Running on file:// protocol - geolocation requires HTTPS/localhost');
+        console.log('Using default location for demo purposes');
+    }
+    
     if (!navigator.geolocation) {
-        console.warn('Geolocation not supported by this browser');
+        console.warn('❌ Geolocation not supported by this browser');
+        userLocation = { lat: 37.7749, lng: -122.4194 }; // Default to San Francisco
+        console.log('✅ Set fallback location:', userLocation);
         return;
     }
     
@@ -168,7 +182,7 @@ function getUserLocation() {
                 accuracy: position.coords.accuracy
             };
             
-            console.log('User location updated:', userLocation);
+            console.log('✅ Real user location obtained:', userLocation);
             
             // Check if user marker exists
             const existingMarker = markers.find(m => m.title === 'Your Location');
@@ -176,6 +190,7 @@ function getUserLocation() {
             if (existingMarker && map) {
                 // Update existing marker position
                 existingMarker.setPosition(userLocation);
+                console.log('Updated user marker on map');
             } else if (map) {
                 // Create new user marker
                 const userMarker = new google.maps.Marker({
@@ -186,12 +201,38 @@ function getUserLocation() {
                     zIndex: 1000
                 });
                 markers.push(userMarker);
+                console.log('Created user location marker on map');
             }
         },
         function(error) {
-            console.log('Geolocation error:', error.message);
+            // Detailed geolocation error logging
+            console.error('❌ Geolocation error occurred:');
+            console.error('  Error Code:', error.code);
+            console.error('  Error Message:', error.message);
+            
+            // Map error codes to readable messages
+            let errorMessage = 'Unknown error';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = 'PERMISSION_DENIED - User denied geolocation permissions';
+                    console.warn('⚠️ Fix: Allow location access in browser permissions');
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = 'POSITION_UNAVAILABLE - Location information unavailable';
+                    console.warn('⚠️ Fix: Check GPS/location services on your device');
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = 'TIMEOUT - Geolocation request timed out';
+                    console.warn('⚠️ Fix: Try again, location services may be slow');
+                    break;
+            }
+            
+            console.warn('Geolocation Error Details:', errorMessage);
+            console.log('📍 Using fallback location (San Francisco)');
+            
             // Use default location if geolocation fails
             userLocation = { lat: 37.7749, lng: -122.4194 };
+            console.log('✅ Fallback location set:', userLocation);
         },
         {
             enableHighAccuracy: true,
@@ -199,6 +240,12 @@ function getUserLocation() {
             timeout: 10000
         }
     );
+    
+    // Set initial fallback location immediately
+    if (!userLocation) {
+        userLocation = { lat: 37.7749, lng: -122.4194 };
+        console.log('ℹ️ Initial fallback location set (will update when geolocation succeeds):', userLocation);
+    }
 }
 
 // Add markers for all trips with coordinates
@@ -312,8 +359,11 @@ function startNavigation(tripId) {
     }
     
     if (!userLocation) {
-        alert('Unable to determine your location. Please enable geolocation.');
-        return;
+        console.error('❌ Cannot start navigation: User location not available');
+        alert('Starting from default location. To use your real location, please:\n1. Enable geolocation permissions\n2. Refresh the page\n3. Allow location access when prompted');
+        // Use fallback location for navigation
+        userLocation = { lat: 37.7749, lng: -122.4194 };
+        console.log('ℹ️ Using fallback location for navigation:', userLocation);
     }
     
     const destination = {
