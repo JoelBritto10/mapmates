@@ -249,15 +249,29 @@
     <script src="js/auth.js"></script>
     <script src="js/trips.js"></script>
     
-    <!-- Load Google Maps API first -->
-    <script>
+    <!-- Load Google Maps API with callback -->
+    <script async defer>
         const GOOGLE_MAPS_API_KEY = 'AIzaSyBn-O_acrlZJdQPMW_e8QgUD4ZlOe-ER2c';
         
-        // Load Google Maps Script
+        // Create and append Google Maps script
         const script = document.createElement('script');
         script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places,directions`;
         script.async = true;
-        script.defer = true;
+        script.onload = function() {
+            console.log('✅ Google Maps API loaded');
+            // Trigger map initialization after API loads
+            if (window.initPage) {
+                window.initPage();
+            }
+        };
+        script.onerror = function() {
+            console.log('Google Maps failed to load, using fallback');
+            setTimeout(() => {
+                if (window.initPage) {
+                    window.initPage();
+                }
+            }, 100);
+        };
         document.head.appendChild(script);
     </script>
     
@@ -278,68 +292,78 @@
                 return;
             }
 
-            // Wait for Google Maps to load
+            // Load trips first
+            let trips = getTrips();
+            if (!trips || trips.length === 0) {
+                console.log('Creating sample trips...');
+                const sampleTrips = [
+                    {
+                        id: 'demo_1',
+                        hostId: 'user_1',
+                        hostName: 'Alex Johnson',
+                        title: 'Yosemite Hiking Adventure',
+                        description: 'Join me for hiking in Yosemite!',
+                        location: 'Yosemite National Park, California',
+                        date: '2025-12-20',
+                        latitude: 37.8651,
+                        longitude: -119.5383,
+                        image: null,
+                        participants: [],
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: 'demo_2',
+                        hostId: 'user_2',
+                        hostName: 'Sam Chen',
+                        title: 'San Francisco Food Tour',
+                        description: 'Discover the best food spots!',
+                        location: 'San Francisco, California',
+                        date: '2025-12-15',
+                        latitude: 37.7749,
+                        longitude: -122.4194,
+                        image: null,
+                        participants: [],
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: 'demo_3',
+                        hostId: 'user_3',
+                        hostName: 'Jordan Lee',
+                        title: 'Venice Beach Sunset',
+                        description: 'Photography session at Venice Beach',
+                        location: 'Venice Beach, Los Angeles',
+                        date: '2025-12-18',
+                        latitude: 33.9850,
+                        longitude: -118.4695,
+                        image: null,
+                        participants: [],
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+                localStorage.setItem('trips', JSON.stringify(sampleTrips));
+                trips = sampleTrips;
+                console.log('✅ Sample trips created');
+            }
+
+            console.log('📍 Found', trips.length, 'trips');
+
+            // Wait for Google Maps to load or timeout
             if (window.google && window.google.maps) {
                 console.log('✅ Google Maps available, initializing map...');
-                
-                // Load trips and initialize map
-                let trips = getTrips();
-                if (!trips || trips.length === 0) {
-                    const sampleTrips = [
-                        {
-                            id: 'demo_1',
-                            hostId: 'user_1',
-                            hostName: 'Alex Johnson',
-                            title: 'Yosemite Hiking Adventure',
-                            description: 'Join me for hiking in Yosemite!',
-                            location: 'Yosemite National Park, California',
-                            date: '2025-12-20',
-                            latitude: 37.8651,
-                            longitude: -119.5383,
-                            image: null,
-                            participants: [],
-                            createdAt: new Date().toISOString()
-                        },
-                        {
-                            id: 'demo_2',
-                            hostId: 'user_2',
-                            hostName: 'Sam Chen',
-                            title: 'San Francisco Food Tour',
-                            description: 'Discover the best food spots!',
-                            location: 'San Francisco, California',
-                            date: '2025-12-15',
-                            latitude: 37.7749,
-                            longitude: -122.4194,
-                            image: null,
-                            participants: [],
-                            createdAt: new Date().toISOString()
-                        },
-                        {
-                            id: 'demo_3',
-                            hostId: 'user_3',
-                            hostName: 'Jordan Lee',
-                            title: 'Venice Beach Sunset',
-                            description: 'Photography session at Venice Beach',
-                            location: 'Venice Beach, Los Angeles',
-                            date: '2025-12-18',
-                            latitude: 33.9850,
-                            longitude: -118.4695,
-                            image: null,
-                            participants: [],
-                            createdAt: new Date().toISOString()
-                        }
-                    ];
-                    localStorage.setItem('trips', JSON.stringify(sampleTrips));
-                    trips = sampleTrips;
-                }
-                
-                // Initialize the map with Google Maps
                 initMap();
             } else {
                 console.log('⏳ Waiting for Google Maps to load...');
                 setTimeout(initPage, 500);
             }
         }
+
+        // Set a maximum timeout of 10 seconds to initialize
+        setTimeout(() => {
+            if (document.getElementById('map').innerHTML.includes('Loading trips')) {
+                console.log('⏱️ Timeout reached, initializing with fallback...');
+                initPage();
+            }
+        }, 10000);
 
         // Start initialization when page is ready
         if (document.readyState === 'loading') {
