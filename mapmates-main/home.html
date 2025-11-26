@@ -74,12 +74,12 @@
                             </div>
                             <div class="trip-actions">
                                 ${isHost ? 
-                                    `<a href="edit-trip.html?id=${trip.id}" class="btn-secondary">Edit trip</a>` :
+                                    `<a href="edit-trip.html?id=${trip.id}" class="btn-secondary">✏️ Edit trip</a>` :
                                     hasJoined ?
-                                    `<button class="btn-disabled" disabled>Already joined</button>` :
-                                    `<button class="btn-primary" onclick="joinTrip('${trip.id}')">Join trip</button>`
+                                    `<button class="btn-disabled" disabled>✓ Already joined</button>` :
+                                    `<button class="btn-primary" onclick="joinTrip('${trip.id}')">+ Join trip</button>`
                                 }
-                                ${hasCoordinates ? `<a href="map.html" onclick="navigateToTrip('${trip.id}'); return false;" class="btn-secondary" style="background: #28a745; border-color: #28a745;">🧭 Navigate</a>` : ''}
+                                ${hasCoordinates ? `<button onclick="navigateToTrip('${trip.id}'); return false;" class="btn-secondary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-color: transparent; color: white; font-weight: 600;">🧭 Navigate</button>` : ''}
                             </div>
                         </div>
                     </div>
@@ -126,6 +126,14 @@
                 host.karma += 5;
                 localStorage.setItem('users', JSON.stringify(users));
             }
+        }
+
+        function navigateToTrip(tripId) {
+            // Store the trip ID for navigation
+            sessionStorage.setItem('navigationTripId', tripId);
+            
+            // Redirect to map page
+            window.location.href = 'map.html';
         }
 
         // Load trips on page load
