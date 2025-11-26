@@ -24,10 +24,12 @@ function loadGoogleMapsScript() {
     if (GOOGLE_MAPS_API_KEY === 'YOUR_API_KEY') {
         console.warn('Google Maps API key not configured. Please add your API key in js/map.js');
         showAPIKeyWarning();
+        setTimeout(initSimpleMap, 500);
         return false;
     }
     
     console.log('📍 Attempting to load Google Maps with API key...');
+    console.log('API Key (masked):', GOOGLE_MAPS_API_KEY.substring(0, 10) + '...');
     
     // Check if Google Maps is already loaded
     if (window.google && window.google.maps) {
@@ -44,17 +46,33 @@ function loadGoogleMapsScript() {
     script.onload = function() {
         console.log('✅ Google Maps script loaded successfully');
         mapsLoaded = true;
-        initMap();
+        setTimeout(initMap, 100);
     };
     
-    script.onerror = function() {
+    script.onerror = function(error) {
         console.error('❌ Failed to load Google Maps script');
-        console.error('Check your API key and ensure it\'s valid');
-        showAPIKeyWarning();
-        initSimpleMap();
+        console.error('Error details:', error);
+        console.error('Falling back to simple map view...');
+        setTimeout(initSimpleMap, 500);
+    };
+    
+    script.onabort = function() {
+        console.warn('⚠️ Google Maps script load aborted');
+        setTimeout(initSimpleMap, 500);
     };
     
     document.head.appendChild(script);
+    
+    // Set timeout fallback - if map doesn't load in 5 seconds, use simple map
+    setTimeout(function() {
+        if (!mapsLoaded && !map) {
+            console.warn('⏱️ Google Maps took too long to load, using fallback');
+            if (!document.getElementById('map').innerHTML.includes('gradient')) {
+                initSimpleMap();
+            }
+        }
+    }, 5000);
+    
     return true;
 }
 
@@ -178,67 +196,74 @@ function getUserLocation() {
 
 // Add markers for all trips with coordinates
 function addTripMarkers() {
-    const trips = getTrips();
-    const tripsWithLocation = trips.filter(t => t.latitude && t.longitude);
-    
-    if (tripsWithLocation.length === 0) {
-        console.log('No trips with coordinates found');
-        return;
-    }
-    
-    // Clear existing markers (keep user marker)
-    markers.forEach(marker => marker.setMap(null));
-    markers = [];
-    
-    // Create bounds to fit all markers
-    const bounds = new google.maps.LatLngBounds();
-    
-    tripsWithLocation.forEach((trip, index) => {
-        const position = {
-            lat: parseFloat(trip.latitude),
-            lng: parseFloat(trip.longitude)
-        };
+    try {
+        const trips = getTrips();
+        const tripsWithLocation = trips.filter(t => t.latitude && t.longitude);
         
-        // Create custom marker
-        const markerColor = ['red', 'blue', 'yellow', 'green', 'purple'][index % 5];
-        const marker = new google.maps.Marker({
-            position: position,
-            map: map,
-            title: trip.title,
-            animation: google.maps.Animation.DROP,
-            icon: `http://maps.google.com/mapfiles/ms/icons/${markerColor}-dot.png`
-        });
+        if (tripsWithLocation.length === 0) {
+            console.log('ℹ️ No trips with coordinates found');
+            return;
+        }
         
-        // Create info window
-        const infoWindow = new google.maps.InfoWindow({
-            content: createInfoWindowContent(trip)
-        });
+        console.log(`📍 Adding ${tripsWithLocation.length} trip markers to map`);
         
-        // Add click listener
-        marker.addListener('click', () => {
-            // Close all other info windows
-            markers.forEach(m => {
-                if (m.infoWindow) {
-                    m.infoWindow.close();
-                }
+        // Clear existing markers (keep user marker)
+        markers.forEach(marker => marker.setMap(null));
+        markers = [];
+        
+        // Create bounds to fit all markers
+        const bounds = new google.maps.LatLngBounds();
+        
+        tripsWithLocation.forEach((trip, index) => {
+            const position = {
+                lat: parseFloat(trip.latitude),
+                lng: parseFloat(trip.longitude)
+            };
+            
+            // Create custom marker
+            const markerColor = ['red', 'blue', 'yellow', 'green', 'purple'][index % 5];
+            const marker = new google.maps.Marker({
+                position: position,
+                map: map,
+                title: trip.title,
+                animation: google.maps.Animation.DROP,
+                icon: `http://maps.google.com/mapfiles/ms/icons/${markerColor}-dot.png`
             });
             
-            infoWindow.open(map, marker);
+            // Create info window
+            const infoWindow = new google.maps.InfoWindow({
+                content: createInfoWindowContent(trip)
+            });
+            
+            // Add click listener
+            marker.addListener('click', () => {
+                // Close all other info windows
+                markers.forEach(m => {
+                    if (m.infoWindow) {
+                        m.infoWindow.close();
+                    }
+                });
+                
+                infoWindow.open(map, marker);
+            });
+            
+            marker.infoWindow = infoWindow;
+            marker.tripId = trip.id;
+            marker.tripLocation = position;
+            marker.tripData = trip;
+            markers.push(marker);
+            
+            // Extend bounds
+            bounds.extend(position);
         });
         
-        marker.infoWindow = infoWindow;
-        marker.tripId = trip.id;
-        marker.tripLocation = position;
-        marker.tripData = trip;
-        markers.push(marker);
-        
-        // Extend bounds
-        bounds.extend(position);
-    });
-    
-    // Fit map to show all markers
-    if (tripsWithLocation.length > 0) {
-        map.fitBounds(bounds);
+        // Fit map to show all markers
+        if (tripsWithLocation.length > 0 && map) {
+            map.fitBounds(bounds);
+            console.log('✅ All trip markers added successfully');
+        }
+    } catch (error) {
+        console.error('❌ Error adding trip markers:', error);
     }
 }
 

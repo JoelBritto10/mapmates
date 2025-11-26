@@ -77,14 +77,40 @@
 
         displayTripLocationsList();
 
-        // Try to load and initialize map
-        console.log('Attempting to load Google Maps...');
-        if (!loadGoogleMapsScript()) {
-            // Use simple map fallback if API key not configured
-            console.log('Google Maps API key not configured, using fallback display');
+        // Initialize map - with smart fallback handling
+        function initializeMapPage() {
+            console.log('🗺️ Initializing map page...');
+            
+            // Try to load Google Maps
+            const result = loadGoogleMapsScript();
+            console.log('loadGoogleMapsScript returned:', result);
+            
+            // If API key not configured, use fallback immediately
+            if (!result) {
+                console.log('📌 Google Maps not available, loading fallback display...');
+                setTimeout(() => {
+                    if (!document.getElementById('map').querySelector('canvas')) {
+                        initSimpleMap();
+                    }
+                }, 100);
+            }
+            
+            // Also set a timeout to ensure fallback loads if Google Maps is slow
             setTimeout(() => {
-                initSimpleMap();
-            }, 500);
+                if (!map && !mapsLoaded) {
+                    console.log('⏱️ Map initialization timeout - loading fallback');
+                    if (!document.getElementById('map').innerHTML.includes('gradient')) {
+                        initSimpleMap();
+                    }
+                }
+            }, 6000);
+        }
+        
+        // Initialize when page is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeMapPage);
+        } else {
+            initializeMapPage();
         }
     </script>
 </body>
