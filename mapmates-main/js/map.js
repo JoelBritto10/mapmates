@@ -43,21 +43,30 @@ function loadGoogleMapsScript() {
     script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places,directions`;
     script.async = true;
     script.defer = true;
+    script.id = 'google-maps-script';
     
     console.log('📜 Creating Google Maps script tag');
     console.log('Script URL:', script.src.substring(0, 50) + '...');
+    console.log('Protocol:', window.location.protocol);
     
     script.onload = function() {
         console.log('✅ Google Maps script loaded successfully');
         console.log('window.google:', typeof window.google);
         console.log('window.google.maps:', typeof window.google?.maps);
-        mapsLoaded = true;
-        setTimeout(initMap, 100);
+        
+        if (window.google && window.google.maps) {
+            mapsLoaded = true;
+            setTimeout(initMap, 100);
+        } else {
+            console.error('❌ Script loaded but Google Maps API not available');
+            setTimeout(initSimpleMap, 500);
+        }
     };
     
     script.onerror = function(error) {
         console.error('❌ Failed to load Google Maps script');
         console.error('Error details:', error);
+        console.error('Possible causes: Invalid API key, key restrictions, network issues');
         console.error('Falling back to simple map view...');
         setTimeout(initSimpleMap, 500);
     };
@@ -69,15 +78,22 @@ function loadGoogleMapsScript() {
     
     document.head.appendChild(script);
     
-    // Set timeout fallback - if map doesn't load in 5 seconds, use simple map
+    // Set timeout fallback - if map doesn't load in 8 seconds, use simple map
     setTimeout(function() {
         if (!mapsLoaded && !map) {
-            console.warn('⏱️ Google Maps took too long to load, using fallback');
+            console.warn('⏱️ Google Maps took too long to load (8s timeout), switching to fallback');
+            console.warn('This usually means the API key is invalid or restricted');
+            
+            const existingScript = document.getElementById('google-maps-script');
+            if (existingScript) {
+                existingScript.remove();
+            }
+            
             if (!document.getElementById('map').innerHTML.includes('gradient')) {
                 initSimpleMap();
             }
         }
-    }, 5000);
+    }, 8000);
     
     return true;
 }
@@ -95,6 +111,18 @@ function initMap() {
     console.log('✅ Map element found:', mapElement);
     console.log('Google object available?', !!window.google);
     console.log('Google.maps available?', !!(window.google && window.google.maps));
+    
+    if (!window.google || !window.google.maps) {
+        console.error('❌ Google Maps not available after loading script');
+        console.error('This indicates an API key or configuration issue');
+        initSimpleMap();
+        return;
+    }
+    
+    if (window.location.protocol === 'file:') {
+        console.warn('⚠️ Running on file:// protocol - Some Google Maps features may not work');
+        console.log('Tip: Use http://localhost or deploy to https:// for full functionality');
+    }
     
     // Default center (San Francisco)
     const defaultCenter = { lat: 37.7749, lng: -122.4194 };
