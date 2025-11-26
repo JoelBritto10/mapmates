@@ -401,18 +401,40 @@ function startNavigation(tripId) {
             // Update route info
             const routeInfo = document.getElementById('routeInfo');
             if (routeInfo) {
+                // Generate turn-by-turn navigation steps
+                const steps = route.legs[0].steps;
+                let stepsHTML = '';
+                
+                steps.forEach((step, index) => {
+                    const stepDistance = step.distance.text;
+                    const instruction = step.instructions.replace(/<[^>]*>/g, ''); // Remove HTML tags
+                    stepsHTML += `
+                        <div style="padding: 10px; margin: 5px 0; background: white; border-left: 4px solid #00798A; border-radius: 4px;">
+                            <p style="margin: 0; font-size: 12px; color: #666;"><strong>Step ${index + 1}:</strong> ${instruction}</p>
+                            <p style="margin: 5px 0 0 0; font-size: 11px; color: #999;">📍 ${stepDistance}</p>
+                        </div>
+                    `;
+                });
+                
                 routeInfo.innerHTML = `
-                    <div style="padding: 15px; background: #e8f4f8; border-radius: 8px; margin-bottom: 15px;">
-                        <h3 style="margin: 0 0 10px 0; color: #00798A;">🧭 Directions to ${trip.title}</h3>
-                        <p style="margin: 5px 0; color: #212529;"><strong>Distance:</strong> ${distance}</p>
-                        <p style="margin: 5px 0; color: #212529;"><strong>Duration:</strong> ${duration}</p>
-                        <p style="margin: 5px 0; color: #212529;"><strong>Location:</strong> ${trip.location}</p>
-                        <button onclick="endNavigation()" style="margin-top: 10px; padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer;">End Navigation</button>
+                    <div style="padding: 15px; background: linear-gradient(135deg, #e8f4f8 0%, #d4e9f7 100%); border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #00798A;">
+                        <h3 style="margin: 0 0 12px 0; color: #00798A; display: flex; align-items: center; gap: 8px;">🧭 <span>Directions to ${trip.title}</span></h3>
+                        <div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+                            <p style="margin: 5px 0; color: #212529;"><strong>📏 Total Distance:</strong> <span style="color: #00798A; font-size: 16px; font-weight: bold;">${distance}</span></p>
+                            <p style="margin: 5px 0; color: #212529;"><strong>⏱️ Estimated Time:</strong> <span style="color: #00798A; font-size: 16px; font-weight: bold;">${duration}</span></p>
+                            <p style="margin: 5px 0; color: #212529;"><strong>📍 Destination:</strong> ${trip.location}</p>
+                        </div>
+                        <h4 style="margin: 12px 0 8px 0; color: #333; font-size: 13px;">📋 Turn-by-Turn Navigation (${steps.length} steps):</h4>
+                        <div style="max-height: 250px; overflow-y: auto; padding: 5px;">
+                            ${stepsHTML}
+                        </div>
+                        <button onclick="endNavigation()" style="width: 100%; margin-top: 12px; padding: 10px 16px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">❌ End Navigation</button>
                     </div>
                 `;
             }
             
-            console.log(`Route to ${trip.title}: ${distance}, ${duration}`);
+            console.log(`🧭 Route to ${trip.title}: ${distance}, ${duration}. Steps: ${steps.length}`);
+            console.log('Turn-by-turn navigation displayed');
         } else {
             alert('Could not calculate directions: ' + status);
         }
