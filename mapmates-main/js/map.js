@@ -96,6 +96,7 @@ function initMap() {
     
     try {
         console.log('🗺️ Creating Google Map...');
+        console.log('Map element size:', mapElement.clientWidth, 'x', mapElement.clientHeight);
         
         // Create map
         map = new google.maps.Map(mapElement, {
@@ -113,6 +114,11 @@ function initMap() {
                 }
             ]
         });
+        
+        // Trigger resize to ensure map renders properly
+        setTimeout(() => {
+            google.maps.event.trigger(map, 'resize');
+        }, 100);
         
         // Initialize services
         directionsService = new google.maps.DirectionsService();
@@ -141,6 +147,7 @@ function initMap() {
         checkAutoNavigation();
     } catch (error) {
         console.error('❌ Error initializing map:', error);
+        console.error('Stack:', error.stack);
         initSimpleMap();
     }
 }

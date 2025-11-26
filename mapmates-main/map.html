@@ -26,12 +26,12 @@
             <h1>Trip Locations</h1>
             <p>Click on markers to view trip details and navigate</p>
         </div>
-        <div style="display: flex; gap: 15px; height: calc(100vh - 200px);">
-            <div style="flex: 1; display: flex; flex-direction: column;">
-                <div id="map" class="map-display" style="flex: 1;"></div>
-                <div id="routeInfo" style="padding: 15px; background: white; border-radius: 8px;"></div>
+        <div style="display: flex; gap: 15px; height: calc(100vh - 250px); min-height: 500px;">
+            <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                <div id="map" class="map-display"></div>
+                <div id="routeInfo" style="padding: 15px; background: white; border-radius: 8px; flex-shrink: 0;"></div>
             </div>
-            <div id="directionsPanel" class="directions-panel" style="width: 300px; background: white; overflow-y: auto; display: none; border-left: 1px solid #ddd;"></div>
+            <div id="directionsPanel" class="directions-panel" style="width: 300px; background: white; overflow-y: auto; display: none; border-left: 1px solid #ddd; flex-shrink: 0;"></div>
         </div>
         <div id="mapInfo" class="map-info" style="margin-top: 20px; text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px;">
             <h3>📍 Trip Locations Map</h3>
@@ -136,36 +136,50 @@
                 trips = sampleTrips;
             }
             
-            // Try to load Google Maps
+            console.log('📍 Found', trips.length, 'trips');
+            
+            // Try to load Google Maps with proper error handling
+            console.log('🔌 Attempting to load Google Maps...');
             const result = loadGoogleMapsScript();
             console.log('loadGoogleMapsScript returned:', result);
             
             // If API key not configured, use fallback immediately
             if (!result) {
-                console.log('📌 Google Maps not available, loading fallback display...');
+                console.log('📌 Google Maps not available, loading fallback display immediately...');
                 setTimeout(() => {
-                    if (!document.getElementById('map').querySelector('canvas')) {
+                    if (!map && !document.getElementById('map').innerHTML.includes('gradient')) {
+                        console.log('✨ Initializing fallback map view...');
                         initSimpleMap();
                     }
                 }, 100);
+                return;
             }
             
-            // Also set a timeout to ensure fallback loads if Google Maps is slow
+            // Set timeout to ensure fallback loads if Google Maps is slow/fails
             setTimeout(() => {
-                if (!map && !mapsLoaded) {
-                    console.log('⏱️ Map initialization timeout - loading fallback');
-                    if (!document.getElementById('map').innerHTML.includes('gradient')) {
-                        initSimpleMap();
-                    }
+                if (!map && !mapsLoaded && !document.getElementById('map').innerHTML.includes('gradient')) {
+                    console.log('⏱️ Google Maps took too long, loading fallback...');
+                    initSimpleMap();
                 }
-            }, 6000);
+            }, 8000);
         }
         
-        // Initialize when page is ready
+        // Initialize when page is ready with proper timing
+        function scheduleInitialization() {
+            // Ensure trips.js functions are available
+            if (typeof getTrips === 'function') {
+                console.log('✅ Dependencies loaded, initializing...');
+                initializeMapPage();
+            } else {
+                console.log('⏳ Waiting for dependencies...');
+                setTimeout(scheduleInitialization, 100);
+            }
+        }
+        
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeMapPage);
+            document.addEventListener('DOMContentLoaded', scheduleInitialization);
         } else {
-            initializeMapPage();
+            scheduleInitialization();
         }
     </script>
 </body>
