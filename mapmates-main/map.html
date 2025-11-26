@@ -43,6 +43,7 @@
 
     <script src="js/auth.js"></script>
     <script src="js/trips.js"></script>
+    <script src="sample-data.js"></script>
     <script src="js/map.js"></script>
     <script>
         checkAuth();
@@ -80,6 +81,60 @@
         // Initialize map - with smart fallback handling
         function initializeMapPage() {
             console.log('🗺️ Initializing map page...');
+            
+            // Ensure we have sample data
+            let trips = getTrips();
+            if (!trips || trips.length === 0) {
+                console.log('📌 No trips found, loading sample data...');
+                // Add sample trips if none exist
+                const sampleTrips = [
+                    {
+                        id: 'trip_demo_1',
+                        hostId: 'user_demo_1',
+                        hostName: 'Demo Host',
+                        title: 'Yosemite Hiking Adventure',
+                        description: 'Join me for an incredible hiking adventure in Yosemite!',
+                        location: 'Yosemite National Park, California',
+                        date: '2025-12-20T08:00:00',
+                        latitude: 37.8651,
+                        longitude: -119.5383,
+                        image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=250&fit=crop',
+                        participants: [],
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: 'trip_demo_2',
+                        hostId: 'user_demo_1',
+                        hostName: 'Demo Host',
+                        title: 'San Francisco Food Tour',
+                        description: 'Discover the best food spots in San Francisco!',
+                        location: 'San Francisco, California',
+                        date: '2025-12-15T12:00:00',
+                        latitude: 37.7749,
+                        longitude: -122.4194,
+                        image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=250&fit=crop',
+                        participants: [],
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: 'trip_demo_3',
+                        hostId: 'user_demo_1',
+                        hostName: 'Demo Host',
+                        title: 'Venice Beach Sunset',
+                        description: 'Photography session at Venice Beach with stunning sunsets!',
+                        location: 'Venice Beach, Los Angeles',
+                        date: '2025-12-18T17:00:00',
+                        latitude: 33.9850,
+                        longitude: -118.4695,
+                        image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=250&fit=crop',
+                        participants: [],
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+                localStorage.setItem('trips', JSON.stringify(sampleTrips));
+                console.log('✅ Sample trips added');
+                trips = sampleTrips;
+            }
             
             // Try to load Google Maps
             const result = loadGoogleMapsScript();
