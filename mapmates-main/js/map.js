@@ -10,7 +10,7 @@
 
 // ⭐ REPLACE 'YOUR_API_KEY' WITH YOUR ACTUAL GOOGLE MAPS API KEY ⭐
 // For now, we'll work without the API key and show a functional fallback
-const GOOGLE_MAPS_API_KEY = 'YOUR_API_KEY'; // Replace with your actual API key
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBn-O_acrlZJdQPMW_e8QgUD4ZlOe-ER2c'; // Replace with your actual API key
 let map;
 let markers = [];
 let directionsService;
@@ -27,9 +27,11 @@ function loadGoogleMapsScript() {
         return false;
     }
     
+    console.log('📍 Attempting to load Google Maps with API key...');
+    
     // Check if Google Maps is already loaded
     if (window.google && window.google.maps) {
-        console.log('Google Maps already loaded');
+        console.log('✅ Google Maps already loaded');
         initMap();
         return true;
     }
@@ -40,13 +42,14 @@ function loadGoogleMapsScript() {
     script.defer = true;
     
     script.onload = function() {
-        console.log('Google Maps script loaded successfully');
+        console.log('✅ Google Maps script loaded successfully');
         mapsLoaded = true;
         initMap();
     };
     
     script.onerror = function() {
-        console.error('Failed to load Google Maps script');
+        console.error('❌ Failed to load Google Maps script');
+        console.error('Check your API key and ensure it\'s valid');
         showAPIKeyWarning();
         initSimpleMap();
     };
@@ -60,12 +63,12 @@ function initMap() {
     const mapElement = document.getElementById('map');
     
     if (!mapElement) {
-        console.error('Map element not found');
+        console.error('❌ Map element not found');
         return;
     }
     
     if (!window.google || !window.google.maps) {
-        console.error('Google Maps not available');
+        console.error('❌ Google Maps not available');
         initSimpleMap();
         return;
     }
@@ -74,6 +77,8 @@ function initMap() {
     const defaultCenter = { lat: 37.7749, lng: -122.4194 };
     
     try {
+        console.log('🗺️ Creating Google Map...');
+        
         // Create map
         map = new google.maps.Map(mapElement, {
             zoom: 4,
@@ -100,7 +105,7 @@ function initMap() {
             preserveViewport: true
         });
         
-        console.log('Google Map initialized successfully');
+        console.log('✅ Google Map initialized successfully');
         
         // Hide the fallback info panel
         const mapInfo = document.getElementById('mapInfo');
@@ -117,7 +122,7 @@ function initMap() {
         // Check if auto-navigation is needed
         checkAutoNavigation();
     } catch (error) {
-        console.error('Error initializing map:', error);
+        console.error('❌ Error initializing map:', error);
         initSimpleMap();
     }
 }
