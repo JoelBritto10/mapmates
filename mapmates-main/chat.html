@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - MapMates</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="home.html" class="nav-logo">🗺️ MapMates</a>
+            <div class="nav-menu">
+                <a href="home.html" class="nav-link">Trips</a>
+                <a href="map.html" class="nav-link">Map</a>
+                <a href="chat.html" class="nav-link active">Messages</a>
+                <a href="karma.html" class="nav-link">Karma</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <a href="logout.html" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="chat-layout">
+        <div class="chat-sidebar">
+            <div class="chat-sidebar-header">
+                <h2>Messages</h2>
+            </div>
+            <div id="conversationsList" class="conversations-list">
+                <p class="chat-empty">No conversations yet</p>
+            </div>
+        </div>
+
+        <div class="chat-main">
+            <div id="chatWelcome" class="chat-welcome">
+                <div class="welcome-content">
+                    <h2>Welcome to Messages</h2>
+                    <p>Select a conversation or start a new one</p>
+                    <button class="btn-primary" onclick="showNewChatModal()">+ New Message</button>
+                </div>
+            </div>
+
+            <div id="chatArea" class="chat-area" style="display: none;">
+                <div class="chat-header">
+                    <div class="chat-participant">
+                        <div class="participant-avatar">👤</div>
+                        <div class="participant-info">
+                            <h3 id="chatParticipantName">Community Chat</h3>
+                            <span id="chatParticipantStatus">Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="messagesContainer" class="messages-container"></div>
+
+                <div class="chat-input-area">
+                    <form id="messageForm" class="message-form">
+                        <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
+                        <button type="submit" class="btn-primary">Send</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Chat Modal -->
+    <div id="newChatModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>New Message</h3>
+                <button class="modal-close" onclick="hideNewChatModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="recipientSelect">Send to:</label>
+                    <select id="recipientSelect" class="form-control">
+                        <option value="">Select a user...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="hideNewChatModal()">Cancel</button>
+                <button class="btn-primary" onclick="startNewChat()">Start Chat</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/chat.js"></script>
+    <script>
+        checkAuth();
+
+        let currentChatId = 'community'; // Default to community chat
+
+        function showNewChatModal() {
+            loadUsersList();
+            document.getElementById('newChatModal').style.display = 'flex';
+        }
+
+        function hideNewChatModal() {
+            document.getElementById('newChatModal').style.display = 'none';
+        }
+
+        function loadUsersList() {
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const currentUser = getCurrentUser();
+            const select = document.getElementById('recipientSelect');
+            
+            select.innerHTML = '<option value="">Select a user...</option>' +
+                users.filter(u => u.id !== currentUser.id)
+                     .map(u => `<option value="${u.id}">${u.name}</option>`)
+                     .join('');
+        }
+
+        function startNewChat() {
+            const recipientId = document.getElementById('recipientSelect').value;
+            if (!recipientId) {
+                alert('Please select a user');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const recipient = users.find(u => u.id === recipientId);
+            
+            if (recipient) {
+                openChat(recipientId, recipient.name);
+                hideNewChatModal();
+            }
+        }
+
+        function openChat(chatId, chatName) {
+            currentChatId = chatId;
+            
+            document.getElementById('chatWelcome').style.display = 'none';
+            document.getElementById('chatArea').style.display = 'flex';
+            document.getElementById('chatParticipantName').textContent = chatName;
+            
+            loadMessages(chatId);
+        }
+
+        function loadMessages(chatId) {
+            const messages = getMessages(chatId);
+            const container = document.getElementById('messagesContainer');
+            const currentUser = getCurrentUser();
+
+            if (messages.length === 0) {
+                container.innerHTML = '<p class="chat-empty">No messages yet. Start the conversation!</p>';
+                return;
+            }
+
+            container.innerHTML = messages.map(msg => {
+                const isOwn = msg.senderId === currentUser.id;
+                return `
+                    <div class="message ${isOwn ? 'message-own' : 'message-other'}">
+                        <div class="message-sender">${msg.senderName}</div>
+                        <div class="message-content">${msg.content}</div>
+                        <div class="message-time">${formatTime(msg.timestamp)}</div>
+                    </div>
+                `;
+            }).join('');
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+            return date.toLocaleDateString();
+        }
+
+        document.getElementById('messageForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+            
+            if (!content) return;
+
+            sendMessage(currentChatId, content);
+            input.value = '';
+            loadMessages(currentChatId);
+        });
+
+        // Load conversations list
+        function loadConversations() {
+            const currentUser = getCurrentUser();
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const container = document.getElementById('conversationsList');
+
+            // Always show community chat
+            let html = `
+                <div class="conversation-item ${currentChatId === 'community' ? 'active' : ''}" onclick="openChat('community', 'Community Chat')">
+                    <div class="conversation-avatar">👥</div>
+                    <div class="conversation-info">
+                        <div class="conversation-name">Community Chat</div>
+                        <div class="conversation-preview">General discussion</div>
+                    </div>
+                </div>
+            `;
+
+            // Show other users
+            users.filter(u => u.id !== currentUser.id).forEach(user => {
+                html += `
+                    <div class="conversation-item ${currentChatId === user.id ? 'active' : ''}" onclick="openChat('${user.id}', '${user.name}')">
+                        <div class="conversation-avatar">👤</div>
+                        <div class="conversation-info">
+                            <div class="conversation-name">${user.name}</div>
+                            <div class="conversation-preview">Start chatting...</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        loadConversations();
+        openChat('community', 'Community Chat');
+    </script>
+</body>
+</html>

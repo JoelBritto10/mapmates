@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - MapMates</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="home.html" class="nav-logo">🗺️ MapMates</a>
+            <div class="nav-menu">
+                <a href="home.html" class="nav-link">Trips</a>
+                <a href="map.html" class="nav-link">Map</a>
+                <a href="chat.html" class="nav-link">Messages</a>
+                <a href="karma.html" class="nav-link">Karma</a>
+                <a href="profile.html" class="nav-link active">Profile</a>
+                <a href="logout.html" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="profile-container">
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    <div id="profileAvatar" class="avatar-placeholder">👤</div>
+                </div>
+                <div class="profile-info">
+                    <h1 id="profileName">Loading...</h1>
+                    <p id="profileEmail" class="profile-email"></p>
+                    <div class="profile-stats">
+                        <div class="stat">
+                            <span class="stat-value" id="karmaPoints">0</span>
+                            <span class="stat-label">Karma Points</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-value" id="tripsHosted">0</span>
+                            <span class="stat-label">Trips Hosted</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-value" id="tripsJoined">0</span>
+                            <span class="stat-label">Trips Joined</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <div class="section-header">
+                    <h2>About</h2>
+                    <button class="btn-secondary" onclick="toggleEditMode()">Edit Profile</button>
+                </div>
+                
+                <div id="viewMode">
+                    <p id="profileBio" class="profile-bio">No bio yet. Click Edit Profile to add one!</p>
+                </div>
+
+                <div id="editMode" style="display: none;">
+                    <form id="editProfileForm">
+                        <div class="form-group">
+                            <label for="name">Name</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="bio">Bio</label>
+                            <textarea id="bio" name="bio" rows="4" placeholder="Tell us about yourself..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="profilePicture">Profile Picture</label>
+                            <input type="file" id="profilePicture" name="profilePicture" accept="image/*">
+                            <small>Upload a profile photo (JPG, PNG, etc.)</small>
+                            <div id="previewContainer" style="margin-top: 15px; display: none;">
+                                <p style="margin-bottom: 10px; color: #6c757d;"><strong>Preview:</strong></p>
+                                <img id="previewImage" src="" alt="Profile Preview" style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid #00798A;">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="toggleEditMode()">Cancel</button>
+                            <button type="submit" class="btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <h2>My Trips</h2>
+                <div id="hostedTrips" class="trips-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/trips.js"></script>
+    <script src="js/profile.js"></script>
+    <script>
+        checkAuth();
+        loadProfile();
+
+        // Get form elements
+        let editProfileForm;
+        let profilePictureInput;
+        let nameInput;
+        let bioInput;
+
+        // Initialize form elements after page loads
+        function initializeFormElements() {
+            editProfileForm = document.getElementById('editProfileForm');
+            profilePictureInput = document.getElementById('profilePicture');
+            nameInput = document.getElementById('name');
+            bioInput = document.getElementById('bio');
+
+            console.log('Form elements initialized:', {
+                form: !!editProfileForm,
+                picture: !!profilePictureInput,
+                name: !!nameInput,
+                bio: !!bioInput
+            });
+
+            // Attach event listeners
+            if (profilePictureInput) {
+                profilePictureInput.addEventListener('change', handleProfilePictureChange);
+            }
+
+            if (editProfileForm) {
+                editProfileForm.addEventListener('submit', handleFormSubmit);
+            }
+        }
+
+        // Handle profile picture preview
+        function handleProfilePictureChange(e) {
+            const file = e.target.files[0];
+            console.log('File selected:', file);
+            
+            if (file) {
+                // Check file size (warn if > 5MB)
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                if (file.size > maxSize) {
+                    alert('File is too large. Please select an image smaller than 5MB.');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const preview = document.getElementById('previewContainer');
+                    const previewImage = document.getElementById('previewImage');
+                    if (preview && previewImage) {
+                        previewImage.src = event.target.result;
+                        preview.style.display = 'block';
+                        console.log('Preview displayed successfully');
+                    }
+                };
+                reader.onerror = function(error) {
+                    console.error('FileReader error:', error);
+                    alert('Error reading file: ' + error.message);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function toggleEditMode() {
+            const viewMode = document.getElementById('viewMode');
+            const editMode = document.getElementById('editMode');
+            const currentUser = getCurrentUser();
+
+            if (!editMode) {
+                console.error('Edit mode element not found');
+                return;
+            }
+
+            if (editMode.style.display === 'none') {
+                // Switch to edit mode
+                if (nameInput) nameInput.value = currentUser.name;
+                if (bioInput) bioInput.value = currentUser.bio || '';
+                
+                // Show existing profile picture preview if available
+                if (currentUser.profilePicture) {
+                    const preview = document.getElementById('previewContainer');
+                    const previewImage = document.getElementById('previewImage');
+                    if (preview && previewImage) {
+                        previewImage.src = currentUser.profilePicture;
+                        preview.style.display = 'block';
+                    }
+                }
+                
+                viewMode.style.display = 'none';
+                editMode.style.display = 'block';
+                console.log('Edit mode enabled');
+            } else {
+                // Switch to view mode
+                viewMode.style.display = 'block';
+                editMode.style.display = 'none';
+                // Reset file input
+                if (profilePictureInput) {
+                    profilePictureInput.value = '';
+                }
+                console.log('Edit mode disabled');
+            }
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            console.log('Form submitted');
+            
+            if (!nameInput) {
+                alert('Error: Form elements not initialized');
+                console.error('nameInput not initialized');
+                return;
+            }
+
+            const name = nameInput.value.trim();
+            const bio = bioInput.value.trim();
+
+            if (!name) {
+                alert('Please enter a name');
+                return;
+            }
+            
+            console.log('Form values:', { name, bio });
+            
+            const profilePictureFile = profilePictureInput.files[0];
+            console.log('Profile picture file:', profilePictureFile);
+            
+            // If there's a new file, convert to base64
+            if (profilePictureFile) {
+                console.log('Converting file to base64...');
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    let base64Data = event.target.result;
+                    console.log('Base64 data length before compression:', base64Data.length);
+                    
+                    // Compress image to fit localStorage
+                    console.log('Compressing image...');
+                    base64Data = compressImage(base64Data);
+                    console.log('Base64 data length after compression:', base64Data.length);
+                    
+                    const updates = {
+                        name: name,
+                        bio: bio,
+                        profilePicture: base64Data
+                    };
+                    submitProfileUpdate(updates);
+                };
+                reader.onerror = function(error) {
+                    console.error('FileReader error:', error);
+                    alert('Error reading file: ' + error.message);
+                };
+                try {
+                    reader.readAsDataURL(profilePictureFile);
+                } catch (error) {
+                    console.error('Error starting file read:', error);
+                    alert('Error reading file: ' + error.message);
+                }
+            } else {
+                // No new file, use existing picture
+                console.log('No new file selected, using existing picture');
+                const currentUser = getCurrentUser();
+                const updates = {
+                    name: name,
+                    bio: bio,
+                    profilePicture: currentUser.profilePicture || ''
+                };
+                submitProfileUpdate(updates);
+            }
+        }
+
+        function submitProfileUpdate(updates) {
+            console.log('Submitting profile update:', {
+                name: updates.name,
+                bio: updates.bio,
+                pictureLength: updates.profilePicture ? updates.profilePicture.length : 0
+            });
+            
+            if (updateProfile(updates)) {
+                console.log('Profile updated successfully');
+                toggleEditMode();
+                loadProfile();
+                alert('Profile updated successfully!');
+            } else {
+                console.error('Profile update failed');
+                alert('Failed to update profile');
+            }
+        }
+
+        // Initialize form elements when page is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeFormElements);
+        } else {
+            initializeFormElements();
+        }
+    </script>
+</body>
+</html>

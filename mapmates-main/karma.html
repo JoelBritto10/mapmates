@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karma Points - MapMates</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="home.html" class="nav-logo">🗺️ MapMates</a>
+            <div class="nav-menu">
+                <a href="home.html" class="nav-link">Trips</a>
+                <a href="map.html" class="nav-link">Map</a>
+                <a href="chat.html" class="nav-link">Messages</a>
+                <a href="karma.html" class="nav-link active">Karma</a>
+                <a href="profile.html" class="nav-link">Profile</a>
+                <a href="logout.html" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="karma-container">
+            <div class="karma-header">
+                <h1>Your Karma Points</h1>
+                <div class="karma-score">
+                    <div class="karma-circle">
+                        <span id="totalKarma" class="karma-number">0</span>
+                        <span class="karma-label">points</span>
+                    </div>
+                </div>
+                <div id="currentBadge" class="current-badge"></div>
+            </div>
+
+            <div class="karma-info">
+                <h2>How to Earn Karma</h2>
+                <div class="karma-rules">
+                    <div class="karma-rule">
+                        <div class="karma-icon">✨</div>
+                        <div class="karma-details">
+                            <h3>+10 Points</h3>
+                            <p>Create a new trip</p>
+                        </div>
+                    </div>
+                    <div class="karma-rule">
+                        <div class="karma-icon">🤝</div>
+                        <div class="karma-details">
+                            <h3>+5 Points</h3>
+                            <p>Each time someone joins your trip</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="badges-section">
+                <h2>Badges & Achievements</h2>
+                <div id="badgesContainer" class="badges-grid"></div>
+            </div>
+
+            <div class="karma-breakdown">
+                <h2>Your Activity</h2>
+                <div id="karmaBreakdown" class="karma-stats"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/trips.js"></script>
+    <script>
+        checkAuth();
+
+        const badges = [
+            { name: 'Beginner', minPoints: 0, icon: '🌱', description: 'Just getting started' },
+            { name: 'Explorer', minPoints: 50, icon: '🗺️', description: 'Active trip organizer' },
+            { name: 'Adventurer', minPoints: 100, icon: '⛰️', description: 'Experienced host' },
+            { name: 'Legend', minPoints: 200, icon: '🏆', description: 'Community leader' },
+            { name: 'Master', minPoints: 500, icon: '👑', description: 'Elite traveler' }
+        ];
+
+        function loadKarmaData() {
+            const currentUser = getCurrentUser();
+            const trips = getTrips();
+            const userTrips = trips.filter(t => t.hostId === currentUser.id);
+            
+            // Calculate karma
+            const tripsCreated = userTrips.length;
+            const totalJoins = userTrips.reduce((sum, trip) => {
+                return sum + (trip.participants ? trip.participants.length : 0);
+            }, 0);
+            
+            const karmaFromTrips = tripsCreated * 10;
+            const karmaFromJoins = totalJoins * 5;
+            const totalKarma = currentUser.karma || (karmaFromTrips + karmaFromJoins);
+
+            // Update display
+            document.getElementById('totalKarma').textContent = totalKarma;
+
+            // Show current badge
+            const currentBadge = badges.filter(b => totalKarma >= b.minPoints).pop();
+            document.getElementById('currentBadge').innerHTML = `
+                <div class="badge-large">
+                    <div class="badge-icon">${currentBadge.icon}</div>
+                    <div class="badge-name">${currentBadge.name}</div>
+                    <div class="badge-desc">${currentBadge.description}</div>
+                </div>
+            `;
+
+            // Show all badges
+            const badgesHtml = badges.map(badge => {
+                const earned = totalKarma >= badge.minPoints;
+                return `
+                    <div class="badge-card ${earned ? 'earned' : 'locked'}">
+                        <div class="badge-icon-small">${badge.icon}</div>
+                        <div class="badge-name-small">${badge.name}</div>
+                        <div class="badge-requirement">${badge.minPoints} points</div>
+                        ${earned ? '<div class="badge-status">✓ Earned</div>' : '<div class="badge-status">🔒 Locked</div>'}
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('badgesContainer').innerHTML = badgesHtml;
+
+            // Show breakdown
+            document.getElementById('karmaBreakdown').innerHTML = `
+                <div class="stat-row">
+                    <span>Trips Created</span>
+                    <span><strong>${tripsCreated}</strong> × 10 = ${karmaFromTrips} points</span>
+                </div>
+                <div class="stat-row">
+                    <span>People Joined Your Trips</span>
+                    <span><strong>${totalJoins}</strong> × 5 = ${karmaFromJoins} points</span>
+                </div>
+                <div class="stat-row total">
+                    <span><strong>Total Karma</strong></span>
+                    <span><strong>${totalKarma} points</strong></span>
+                </div>
+            `;
+        }
+
+        loadKarmaData();
+    </script>
+</body>
+</html>
