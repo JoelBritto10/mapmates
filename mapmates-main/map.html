@@ -34,8 +34,8 @@
             <div id="directionsPanel" class="directions-panel" style="width: 300px; background: white; overflow-y: auto; display: none; border-left: 1px solid #ddd;"></div>
         </div>
         <div id="mapInfo" class="map-info" style="margin-top: 20px;">
-            <p>📍 Add your Google Maps API key in js/map.js to enable the interactive map</p>
-            <p>In the meantime, here's a list of all trip locations:</p>
+            <p id="apiKeyWarning">📍 Google Maps is loading... If the map doesn't appear, check browser console for errors.</p>
+            <p>Trip Locations:</p>
             <div id="tripLocations" class="trip-locations-list"></div>
         </div>
     </div>
@@ -77,10 +77,10 @@
         displayTripLocationsList();
 
         // Try to load and initialize map
-        if (loadGoogleMapsScript()) {
-            // Map will be initialized via callback
-        } else {
-            // Use simple map fallback
+        console.log('Attempting to load Google Maps...');
+        if (!loadGoogleMapsScript()) {
+            // Use simple map fallback if API key not configured
+            console.log('Google Maps API key not configured, using fallback display');
             setTimeout(() => {
                 initSimpleMap();
             }, 500);

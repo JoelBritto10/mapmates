@@ -8,13 +8,15 @@
 //    - Geocoding API
 // 3. Replace 'YOUR_API_KEY' below with your actual API key
 
-const GOOGLE_MAPS_API_KEY = 'YOUR_API_KEY'; // Replace with your actual API key
+// ⭐ REPLACE 'YOUR_API_KEY' WITH YOUR ACTUAL GOOGLE MAPS API KEY ⭐
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBRNTx_Wj-OUpJ8X6Dw1pRmGk_NvD4PyDI'; // Replace with your actual API key
 let map;
 let markers = [];
 let directionsService;
 let directionsRenderer;
 let userLocation = null;
 let currentNavigation = null;
+let mapsLoaded = false;
 
 // Load Google Maps script dynamically with required libraries
 function loadGoogleMapsScript() {
@@ -24,10 +26,30 @@ function loadGoogleMapsScript() {
         return false;
     }
     
+    // Check if Google Maps is already loaded
+    if (window.google && window.google.maps) {
+        console.log('Google Maps already loaded');
+        initMap();
+        return true;
+    }
+    
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places,directions&callback=initMap`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places,directions`;
     script.async = true;
     script.defer = true;
+    
+    script.onload = function() {
+        console.log('Google Maps script loaded successfully');
+        mapsLoaded = true;
+        initMap();
+    };
+    
+    script.onerror = function() {
+        console.error('Failed to load Google Maps script');
+        showAPIKeyWarning();
+        initSimpleMap();
+    };
+    
     document.head.appendChild(script);
     return true;
 }
@@ -41,68 +63,111 @@ function initMap() {
         return;
     }
     
+    if (!window.google || !window.google.maps) {
+        console.error('Google Maps not available');
+        initSimpleMap();
+        return;
+    }
+    
     // Default center (San Francisco)
     const defaultCenter = { lat: 37.7749, lng: -122.4194 };
     
-    // Create map
-    map = new google.maps.Map(mapElement, {
-        zoom: 4,
-        center: defaultCenter,
-        mapTypeControl: true,
-        fullscreenControl: true,
-        zoomControl: true,
-        streetViewControl: true,
-        styles: [
-            {
-                featureType: 'poi',
-                elementType: 'labels',
-                stylers: [{ visibility: 'off' }]
-            }
-        ]
-    });
-    
-    // Initialize services
-    directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({
-        map: map,
-        panel: document.getElementById('directionsPanel'),
-        suppressMarkers: false,
-        preserveViewport: true
-    });
-    
-    // Get user's location
-    getUserLocation();
-    
-    // Add markers for all trips
-    addTripMarkers();
-    
-    // Check if auto-navigation is needed
-    checkAutoNavigation();
+    try {
+        // Create map
+        map = new google.maps.Map(mapElement, {
+            zoom: 4,
+            center: defaultCenter,
+            mapTypeControl: true,
+            fullscreenControl: true,
+            zoomControl: true,
+            streetViewControl: true,
+            styles: [
+                {
+                    featureType: 'poi',
+                    elementType: 'labels',
+                    stylers: [{ visibility: 'off' }]
+                }
+            ]
+        });
+        
+        // Initialize services
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer({
+            map: map,
+            panel: document.getElementById('directionsPanel'),
+            suppressMarkers: false,
+            preserveViewport: true
+        });
+        
+        console.log('Google Map initialized successfully');
+        
+        // Hide the fallback info panel
+        const mapInfo = document.getElementById('mapInfo');
+        if (mapInfo) {
+            mapInfo.style.display = 'none';
+        }
+        
+        // Get user's location
+        getUserLocation();
+        
+        // Add markers for all trips
+        addTripMarkers();
+        
+        // Check if auto-navigation is needed
+        checkAutoNavigation();
+    } catch (error) {
+        console.error('Error initializing map:', error);
+        initSimpleMap();
+    }
 }
 
-// Get user's current location
+// Get user's current location with real-time tracking
 function getUserLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            function(position) {
-                userLocation = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                };
-                
-                // Add user marker
-                new google.maps.Marker({
+    if (!navigator.geolocation) {
+        console.warn('Geolocation not supported by this browser');
+        return;
+    }
+    
+    // Watch position for real-time updates
+    navigator.geolocation.watchPosition(
+        function(position) {
+            userLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                accuracy: position.coords.accuracy
+            };
+            
+            console.log('User location updated:', userLocation);
+            
+            // Check if user marker exists
+            const existingMarker = markers.find(m => m.title === 'Your Location');
+            
+            if (existingMarker && map) {
+                // Update existing marker position
+                existingMarker.setPosition(userLocation);
+            } else if (map) {
+                // Create new user marker
+                const userMarker = new google.maps.Marker({
                     position: userLocation,
                     map: map,
                     title: 'Your Location',
-                    icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                    icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                    zIndex: 1000
                 });
-            },
-            function(error) {
-                console.log('Geolocation error:', error);
+                markers.push(userMarker);
             }
-        );
-    }
+        },
+        function(error) {
+            console.log('Geolocation error:', error.message);
+            // Use default location if geolocation fails
+            userLocation = { lat: 37.7749, lng: -122.4194 };
+        },
+        {
+            enableHighAccuracy: true,
+            maximumAge: 10000,
+            timeout: 10000
+        }
+    );
 }
 
 // Add markers for all trips with coordinates
