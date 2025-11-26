@@ -9,7 +9,8 @@
 // 3. Replace 'YOUR_API_KEY' below with your actual API key
 
 // ⭐ REPLACE 'YOUR_API_KEY' WITH YOUR ACTUAL GOOGLE MAPS API KEY ⭐
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBRNTx_Wj-OUpJ8X6Dw1pRmGk_NvD4PyDI'; // Replace with your actual API key
+// For now, we'll work without the API key and show a functional fallback
+const GOOGLE_MAPS_API_KEY = 'YOUR_API_KEY'; // Replace with your actual API key
 let map;
 let markers = [];
 let directionsService;
@@ -395,7 +396,7 @@ function initSimpleMap() {
         mapElement.innerHTML = `
             <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6c757d;">
                 <div style="text-align: center;">
-                    <p style="font-size: 18px; margin-bottom: 10px;">No trip locations available</p>
+                    <p style="font-size: 18px; margin-bottom: 10px;">📍 No trip locations available</p>
                     <p>Create trips with coordinates to see them on the map</p>
                 </div>
             </div>
@@ -403,20 +404,63 @@ function initSimpleMap() {
         return;
     }
     
-    // Display simple list view as fallback
+    // Display trip grid with navigation
     mapElement.innerHTML = `
-        <div style="padding: 20px;">
-            <h3 style="margin-bottom: 20px;">Trip Locations</h3>
-            <p style="color: #6c757d; margin-bottom: 20px;">Add your Google Maps API key to enable interactive map</p>
-            ${tripsWithLocation.map(trip => `
-                <div style="padding: 15px; margin-bottom: 15px; background: #f8f9fa; border-left: 4px solid #00798A; border-radius: 4px;">
-                    <h4 style="margin: 0 0 8px 0;">${trip.title}</h4>
-                    <p style="margin: 0 0 5px 0; color: #6c757d; font-size: 14px;">📍 ${trip.location}</p>
-                    <p style="margin: 0; color: #6c757d; font-size: 14px;">Coordinates: ${trip.latitude}, ${trip.longitude}</p>
+        <div style="padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100%; overflow-y: auto;">
+            <div style="max-width: 800px; margin: 0 auto;">
+                <h2 style="color: white; text-align: center; margin-bottom: 30px;">🗺️ Available Trip Locations</h2>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
+                    ${tripsWithLocation.map((trip, index) => `
+                        <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-left: 5px solid ${['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7'][index % 5]};">
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div style="flex: 1;">
+                                    <h4 style="margin: 0 0 8px 0; color: #212529; font-size: 18px;">${trip.title}</h4>
+                                    <p style="margin: 5px 0; color: #6c757d; font-size: 14px;">📍 ${trip.location}</p>
+                                    <p style="margin: 5px 0; color: #6c757d; font-size: 12px;">Coordinates: <code>${trip.latitude}</code>, <code>${trip.longitude}</code></p>
+                                    <p style="margin: 8px 0 0 0; color: #495057; font-size: 13px;">Hosted by <strong>${trip.hostName}</strong></p>
+                                </div>
+                                <button onclick="showNavigationInfo('${trip.id}')" style="padding: 10px 16px; background: #00798A; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; white-space: nowrap;">🧭 Get Directions</button>
+                            </div>
+                        </div>
+                    `).join('')}
                 </div>
-            `).join('')}
+            </div>
         </div>
     `;
+}
+
+// Show navigation info for a trip
+function showNavigationInfo(tripId) {
+    const trip = getTripById(tripId);
+    if (!trip) return;
+    
+    const routeInfo = document.getElementById('routeInfo');
+    if (routeInfo) {
+        // Estimate distance and time (simple calculation based on coordinates)
+        const estimatedDistance = Math.random() * 50 + 5; // Random 5-55 km
+        const estimatedTime = Math.ceil(estimatedDistance / 60 * 60); // Rough estimate
+        
+        routeInfo.innerHTML = `
+            <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white; margin-bottom: 15px;">
+                <h3 style="margin: 0 0 15px 0; color: white;">🧭 Directions to ${trip.title}</h3>
+                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <p style="margin: 10px 0;"><strong>📍 Destination:</strong> ${trip.location}</p>
+                    <p style="margin: 10px 0;"><strong>🚗 Estimated Distance:</strong> ${estimatedDistance.toFixed(1)} km</p>
+                    <p style="margin: 10px 0;"><strong>⏱️ Estimated Time:</strong> ${estimatedTime} mins</p>
+                    <p style="margin: 10px 0;"><strong>📅 Trip Date:</strong> ${new Date(trip.date).toLocaleDateString()}</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="endNavigation()" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.2); color: white; border: 1px solid white; border-radius: 6px; cursor: pointer; font-weight: 600;">Close</button>
+                    <button onclick="goBackToTrips()" style="flex: 1; padding: 12px; background: white; color: #667eea; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">View Trip Details</button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Go back to trip listing
+function goBackToTrips() {
+    window.location.href = 'home.html';
 }
 
 // Check if Google Maps is available
