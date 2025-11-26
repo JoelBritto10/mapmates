@@ -248,54 +248,18 @@
 
     <script src="js/auth.js"></script>
     <script src="js/trips.js"></script>
-    
-    <!-- Load Google Maps API with callback -->
-    <script async defer>
-        const GOOGLE_MAPS_API_KEY = 'AIzaSyBn-O_acrlZJdQPMW_e8QgUD4ZlOe-ER2c';
-        
-        // Create and append Google Maps script
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places,directions`;
-        script.async = true;
-        script.onload = function() {
-            console.log('✅ Google Maps API loaded');
-            // Trigger map initialization after API loads
-            if (window.initPage) {
-                window.initPage();
-            }
-        };
-        script.onerror = function() {
-            console.log('Google Maps failed to load, using fallback');
-            setTimeout(() => {
-                if (window.initPage) {
-                    window.initPage();
-                }
-            }, 100);
-        };
-        document.head.appendChild(script);
-    </script>
-    
     <script src="js/map.js"></script>
-
+    
+    <!-- Initialize map after all scripts load -->
     <script>
-        // Check authentication
         checkAuth();
-
-        // Initialize page
-        function initPage() {
-            console.log('🚀 Initializing map page...');
+        
+        function startMap() {
+            console.log('🚀 Starting map...');
             
-            // Check if dependencies are loaded
-            if (typeof getTrips !== 'function') {
-                console.log('⏳ Waiting for dependencies...');
-                setTimeout(initPage, 100);
-                return;
-            }
-
-            // Load trips first
+            // Ensure trips are loaded
             let trips = getTrips();
             if (!trips || trips.length === 0) {
-                console.log('Creating sample trips...');
                 const sampleTrips = [
                     {
                         id: 'demo_1',
@@ -342,35 +306,28 @@
                 ];
                 localStorage.setItem('trips', JSON.stringify(sampleTrips));
                 trips = sampleTrips;
-                console.log('✅ Sample trips created');
             }
-
-            console.log('📍 Found', trips.length, 'trips');
-
-            // Wait for Google Maps to load or timeout
-            if (window.google && window.google.maps) {
-                console.log('✅ Google Maps available, initializing map...');
-                initMap();
-            } else {
-                console.log('⏳ Waiting for Google Maps to load...');
-                setTimeout(initPage, 500);
-            }
+            
+            // Load Google Maps
+            loadGoogleMapsScript();
         }
-
-        // Set a maximum timeout of 10 seconds to initialize
-        setTimeout(() => {
-            if (document.getElementById('map').innerHTML.includes('Loading trips')) {
-                console.log('⏱️ Timeout reached, initializing with fallback...');
-                initPage();
-            }
-        }, 10000);
-
-        // Start initialization when page is ready
+        
+        // Wait for DOM to be ready
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initPage);
+            document.addEventListener('DOMContentLoaded', startMap);
         } else {
-            initPage();
+            startMap();
         }
+        
+        // Fallback timeout
+        setTimeout(() => {
+            if (!window.google || !window.google.maps) {
+                console.log('⏱️ Google Maps took too long, using fallback');
+                if (typeof initSimpleMap === 'function') {
+                    initSimpleMap();
+                }
+            }
+        }, 8000);
     </script>
 </body>
 </html>

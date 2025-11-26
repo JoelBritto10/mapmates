@@ -10,7 +10,7 @@
 
 // ⭐ REPLACE 'YOUR_API_KEY' WITH YOUR ACTUAL GOOGLE MAPS API KEY ⭐
 // For now, we'll work without the API key and show a functional fallback
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBn-O_acrlZJdQPMW_e8QgUD4ZlOe-ER2c'; // Replace with your actual API key
+const GOOGLE_MAPS_API_KEY = 'AIzaSyCSN5qC2-EnDRVl6kL6adco_YPm5dzpP5A'; // Replace with your actual API key
 let map;
 let markers = [];
 let directionsService;
