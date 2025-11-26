@@ -5,181 +5,513 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trip Map - MapMates</title>
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+        }
+
+        .page-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+        }
+
+        .navbar {
+            flex-shrink: 0;
+        }
+
+        .page-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .map-header {
+            flex-shrink: 0;
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+            background: white;
+        }
+
+        .map-header h1 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .map-header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .map-main {
+            flex: 1;
+            display: flex;
+            gap: 0;
+            overflow: hidden;
+            background: white;
+        }
+
+        #mapContainer {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: white;
+        }
+
+        #map {
+            width: 100%;
+            min-height: 500px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .trip-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .trip-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-left-color: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .trip-card h3 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .trip-card p {
+            color: #666;
+            font-size: 13px;
+            margin: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .trip-card .trip-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+        }
+
+        .trip-host {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .trip-date {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .navigate-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .navigate-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        }
+
+        .navigate-btn:active {
+            transform: scale(0.98);
+        }
+
+        #routeInfo {
+            flex-shrink: 0;
+            padding: 15px;
+            border-top: 1px solid #ddd;
+            background: white;
+            font-size: 13px;
+            color: #666;
+        }
+
+        #directionsPanel {
+            flex-shrink: 0;
+            width: 300px;
+            border-left: 1px solid #ddd;
+            overflow-y: auto;
+            background: white;
+            padding: 15px;
+            display: none;
+        }
+
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            height: 100%;
+            color: #999;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .spinner {
+            border: 2px solid #f0f0f0;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="home.html" class="nav-logo">🗺️ MapMates</a>
-            <div class="nav-menu">
-                <a href="home.html" class="nav-link">Trips</a>
-                <a href="map.html" class="nav-link active">Map</a>
-                <a href="chat.html" class="nav-link">Messages</a>
-                <a href="karma.html" class="nav-link">Karma</a>
-                <a href="profile.html" class="nav-link">Profile</a>
-                <a href="logout.html" class="nav-link">Logout</a>
+    <div class="page-wrapper">
+        <nav class="navbar">
+            <div class="nav-container">
+                <a href="home.html" class="nav-logo">🗺️ MapMates</a>
+                <div class="nav-menu">
+                    <a href="home.html" class="nav-link">Trips</a>
+                    <a href="map.html" class="nav-link active">Map</a>
+                    <a href="chat.html" class="nav-link">Messages</a>
+                    <a href="karma.html" class="nav-link">Karma</a>
+                    <a href="profile.html" class="nav-link">Profile</a>
+                    <a href="logout.html" class="nav-link">Logout</a>
+                </div>
             </div>
-        </div>
-    </nav>
+        </nav>
 
-    <div class="map-container-wrapper">
-        <div class="map-header">
-            <h1>Trip Locations</h1>
-            <p>Click on markers to view trip details and navigate</p>
-        </div>
-        <div style="display: flex; gap: 15px; height: calc(100vh - 250px); min-height: 500px;">
-            <div style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
-                <div id="map" class="map-display"></div>
-                <div id="routeInfo" style="padding: 15px; background: white; border-radius: 8px; flex-shrink: 0;"></div>
+        <div class="page-content">
+            <div class="map-header">
+                <h1>🗺️ Trip Locations</h1>
+                <p>View all trip locations and navigate to destinations</p>
             </div>
-            <div id="directionsPanel" class="directions-panel" style="width: 300px; background: white; overflow-y: auto; display: none; border-left: 1px solid #ddd; flex-shrink: 0;"></div>
-        </div>
-        <div id="mapInfo" class="map-info" style="margin-top: 20px; text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px;">
-            <h3>📍 Trip Locations Map</h3>
-            <p>Click on a trip location above to see directions and distance information</p>
-            <p><small>💡 <strong>Tip:</strong> To enable the interactive Google Map, add your API key to <code>js/map.js</code></small></p>
-            <a href="GOOGLE-MAPS-READY.md" style="color: #00798A; text-decoration: none; font-weight: 600;">📖 Read Setup Guide</a>
+
+            <div class="map-main">
+                <div id="mapContainer">
+                    <div id="map">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <span>Loading trips...</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="routeInfo"></div>
+            </div>
         </div>
     </div>
 
     <script src="js/auth.js"></script>
     <script src="js/trips.js"></script>
-    <script src="sample-data.js"></script>
     <script src="js/map.js"></script>
+
     <script>
+        // Check authentication
         checkAuth();
-        
-        // Display trip locations list
-        function displayTripLocationsList() {
-            const trips = getTrips();
-            const container = document.getElementById('tripLocations');
-            
-            if (trips.length === 0) {
-                container.innerHTML = '<p>No trips available</p>';
-                return;
-            }
 
-            const tripsWithLocation = trips.filter(t => t.latitude && t.longitude);
-            
-            if (tripsWithLocation.length === 0) {
-                container.innerHTML = '<p>No trips with coordinates yet. Create trips with latitude/longitude to see them on the map!</p>';
-                return;
-            }
+        // Global state
+        let mapObject = null;
+        let usingGoogleMaps = false;
 
-            container.innerHTML = tripsWithLocation.map(trip => `
-                <div class="location-item">
-                    <h4>${trip.title}</h4>
-                    <p>📍 ${trip.location}</p>
-                    <p>Coordinates: ${trip.latitude}, ${trip.longitude}</p>
-                    <p><small>Hosted by ${trip.hostName} on ${new Date(trip.date).toLocaleDateString()}</small></p>
-                    <button onclick="startNavigation('${trip.id}')" style="padding: 6px 12px; background: #00798A; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">🧭 Navigate</button>
-                </div>
-            `).join('');
-        }
-
-        displayTripLocationsList();
-
-        // Initialize map - with smart fallback handling
-        function initializeMapPage() {
-            console.log('🗺️ Initializing map page...');
-            
-            // Ensure we have sample data
+        // Load and display trips
+        function loadAndDisplayTrips() {
+            console.log('📍 Loading trips...');
             let trips = getTrips();
+            
+            // If no trips, create sample ones
             if (!trips || trips.length === 0) {
-                console.log('📌 No trips found, loading sample data...');
-                // Add sample trips if none exist
+                console.log('Creating sample trips...');
                 const sampleTrips = [
                     {
-                        id: 'trip_demo_1',
-                        hostId: 'user_demo_1',
-                        hostName: 'Demo Host',
+                        id: 'demo_1',
+                        hostId: 'user_1',
+                        hostName: 'Alex Johnson',
                         title: 'Yosemite Hiking Adventure',
                         description: 'Join me for an incredible hiking adventure in Yosemite!',
                         location: 'Yosemite National Park, California',
-                        date: '2025-12-20T08:00:00',
+                        date: '2025-12-20',
                         latitude: 37.8651,
                         longitude: -119.5383,
-                        image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=250&fit=crop',
+                        image: null,
                         participants: [],
                         createdAt: new Date().toISOString()
                     },
                     {
-                        id: 'trip_demo_2',
-                        hostId: 'user_demo_1',
-                        hostName: 'Demo Host',
+                        id: 'demo_2',
+                        hostId: 'user_2',
+                        hostName: 'Sam Chen',
                         title: 'San Francisco Food Tour',
                         description: 'Discover the best food spots in San Francisco!',
                         location: 'San Francisco, California',
-                        date: '2025-12-15T12:00:00',
+                        date: '2025-12-15',
                         latitude: 37.7749,
                         longitude: -122.4194,
-                        image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=250&fit=crop',
+                        image: null,
                         participants: [],
                         createdAt: new Date().toISOString()
                     },
                     {
-                        id: 'trip_demo_3',
-                        hostId: 'user_demo_1',
-                        hostName: 'Demo Host',
+                        id: 'demo_3',
+                        hostId: 'user_3',
+                        hostName: 'Jordan Lee',
                         title: 'Venice Beach Sunset',
-                        description: 'Photography session at Venice Beach with stunning sunsets!',
+                        description: 'Photography session at Venice Beach',
                         location: 'Venice Beach, Los Angeles',
-                        date: '2025-12-18T17:00:00',
+                        date: '2025-12-18',
                         latitude: 33.9850,
                         longitude: -118.4695,
-                        image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=250&fit=crop',
+                        image: null,
                         participants: [],
                         createdAt: new Date().toISOString()
                     }
                 ];
                 localStorage.setItem('trips', JSON.stringify(sampleTrips));
-                console.log('✅ Sample trips added');
                 trips = sampleTrips;
             }
+
+            console.log('✅ Found', trips.length, 'trips');
+
+            // Display trips with coordinates
+            const tripsWithCoords = trips.filter(t => t.latitude && t.longitude);
             
-            console.log('📍 Found', trips.length, 'trips');
-            
-            // Try to load Google Maps with proper error handling
-            console.log('🔌 Attempting to load Google Maps...');
-            const result = loadGoogleMapsScript();
-            console.log('loadGoogleMapsScript returned:', result);
-            
-            // If API key not configured, use fallback immediately
-            if (!result) {
-                console.log('📌 Google Maps not available, loading fallback display immediately...');
-                setTimeout(() => {
-                    if (!map && !document.getElementById('map').innerHTML.includes('gradient')) {
-                        console.log('✨ Initializing fallback map view...');
-                        initSimpleMap();
-                    }
-                }, 100);
+            if (tripsWithCoords.length === 0) {
+                displayEmpty();
                 return;
             }
-            
-            // Set timeout to ensure fallback loads if Google Maps is slow/fails
-            setTimeout(() => {
-                if (!map && !mapsLoaded && !document.getElementById('map').innerHTML.includes('gradient')) {
-                    console.log('⏱️ Google Maps took too long, loading fallback...');
-                    initSimpleMap();
-                }
-            }, 8000);
-        }
-        
-        // Initialize when page is ready with proper timing
-        function scheduleInitialization() {
-            // Ensure trips.js functions are available
-            if (typeof getTrips === 'function') {
-                console.log('✅ Dependencies loaded, initializing...');
-                initializeMapPage();
+
+            // Try to load Google Maps
+            console.log('🔌 Attempting to load Google Maps...');
+            if (window.google && window.google.maps) {
+                console.log('✅ Google Maps available, initializing interactive map...');
+                usingGoogleMaps = true;
+                initGoogleMapsView(tripsWithCoords);
             } else {
-                console.log('⏳ Waiting for dependencies...');
-                setTimeout(scheduleInitialization, 100);
+                console.log('📌 Google Maps not available, using fallback card view...');
+                displayTripsList(tripsWithCoords);
             }
         }
-        
+
+        // Initialize Google Maps view
+        function initGoogleMapsView(trips) {
+            const mapContainer = document.getElementById('map');
+            mapContainer.style.background = 'white';
+            mapContainer.innerHTML = '';
+
+            // Create center point (average of all trip coordinates)
+            const center = {
+                lat: trips.reduce((sum, t) => sum + t.latitude, 0) / trips.length,
+                lng: trips.reduce((sum, t) => sum + t.longitude, 0) / trips.length
+            };
+
+            // Initialize Google Map
+            mapObject = new google.maps.Map(mapContainer, {
+                zoom: 6,
+                center: center,
+                mapTypeControl: true,
+                fullscreenControl: true,
+                streetViewControl: false
+            });
+
+            // Add markers for each trip
+            const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe'];
+            trips.forEach((trip, index) => {
+                const color = colors[index % colors.length];
+                const marker = new google.maps.Marker({
+                    position: { lat: trip.latitude, lng: trip.longitude },
+                    map: mapObject,
+                    title: trip.title,
+                    icon: createCustomMarker(color)
+                });
+
+                // Add click listener
+                marker.addListener('click', () => {
+                    showTripInfo(trip);
+                });
+            });
+
+            // Add user location if available
+            getUserLocation();
+
+            console.log('✅ Google Maps initialized with', trips.length, 'trip markers');
+        }
+
+        // Create custom marker icon
+        function createCustomMarker(color) {
+            return {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor: color,
+                fillOpacity: 1,
+                strokeColor: '#fff',
+                strokeWeight: 2
+            };
+        }
+
+        // Get user location
+        function getUserLocation() {
+            if (!navigator.geolocation) {
+                console.log('📍 Geolocation not available');
+                return;
+            }
+
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    const userLoc = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    
+                    console.log('📍 User location:', userLoc);
+
+                    if (usingGoogleMaps && mapObject) {
+                        // Add user location marker
+                        new google.maps.Marker({
+                            position: userLoc,
+                            map: mapObject,
+                            title: 'Your Location',
+                            icon: {
+                                path: google.maps.SymbolPath.CIRCLE,
+                                scale: 8,
+                                fillColor: '#4facfe',
+                                fillOpacity: 1,
+                                strokeColor: '#fff',
+                                strokeWeight: 2
+                            }
+                        });
+
+                        // Center map on user
+                        mapObject.setCenter(userLoc);
+                    }
+                },
+                (error) => {
+                    console.log('❌ Geolocation error:', error);
+                }
+            );
+        }
+
+        // Show trip info window
+        function showTripInfo(trip) {
+            const infoPanel = document.getElementById('routeInfo');
+            infoPanel.innerHTML = `
+                <div style="padding: 10px; background: white; border-radius: 8px;">
+                    <h3 style="color: #333; margin-bottom: 8px;">${trip.title}</h3>
+                    <p style="color: #666; font-size: 13px; margin: 5px 0;">📍 ${trip.location}</p>
+                    <p style="color: #666; font-size: 13px; margin: 5px 0;">👤 Hosted by ${trip.hostName}</p>
+                    <p style="color: #666; font-size: 13px; margin: 5px 0;">📅 ${new Date(trip.date).toLocaleDateString()}</p>
+                    <button class="navigate-btn" onclick="startNavigationToTrip('${trip.id}')" style="margin-top: 10px; width: 100%;">🧭 Start Navigation</button>
+                </div>
+            `;
+        }
+
+        // Start navigation to trip
+        function startNavigationToTrip(tripId) {
+            console.log('🧭 Starting navigation to trip:', tripId);
+            const trip = getTrips().find(t => t.id === tripId);
+            if (!trip) return;
+
+            if (typeof startNavigation === 'function') {
+                startNavigation(tripId);
+            }
+        }
+
+        // Display trip cards (fallback)
+        function displayTripsList(trips) {
+            console.log('🎯 Displaying', trips.length, 'trips');
+            const html = `
+                <div style="padding: 10px;">
+                    <h2 style="margin: 15px 0 10px; color: #333; font-size: 18px;">Available Trips</h2>
+                    ${trips.map(trip => `
+                        <div class="trip-card">
+                            <h3>${trip.title}</h3>
+                            <p>📍 ${trip.location}</p>
+                            <p>📅 ${new Date(trip.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                            <div class="trip-meta">
+                                <span class="trip-host">👤 ${trip.hostName}</span>
+                                <button class="navigate-btn" onclick="startNavigation('${trip.id}')">🧭 Navigate</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            document.getElementById('map').innerHTML = html;
+        }
+
+        // Display empty state
+        function displayEmpty() {
+            document.getElementById('map').innerHTML = `
+                <div class="empty-state">
+                    <div style="font-size: 48px; margin-bottom: 15px;">📍</div>
+                    <h2 style="color: #333; margin-bottom: 10px;">No Trips Yet</h2>
+                    <p style="color: #999; margin-bottom: 20px;">Create a trip with a location to see it here</p>
+                    <a href="create-trip.html" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">+ Create Trip</a>
+                </div>
+            `;
+        }
+
+        // Initialize page
+        function initPage() {
+            console.log('🚀 Initializing map page...');
+            
+            // Check if dependencies are loaded
+            if (typeof getTrips !== 'function') {
+                console.log('⏳ Waiting for dependencies...');
+                setTimeout(initPage, 100);
+                return;
+            }
+
+            loadAndDisplayTrips();
+        }
+
+        // Start initialization
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', scheduleInitialization);
+            document.addEventListener('DOMContentLoaded', initPage);
         } else {
-            scheduleInitialization();
+            initPage();
         }
     </script>
 </body>
